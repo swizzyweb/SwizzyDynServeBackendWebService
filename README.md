@@ -1,4 +1,4 @@
-# @swizzyweb/swizzy-dyn-serve
+# dyn-serve-backend-web-service
 
 Dynamic web application service. This service provides the ability to install web services
 and browser side tools dynamically on an express service.
