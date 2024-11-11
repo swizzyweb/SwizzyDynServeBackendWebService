@@ -6,7 +6,7 @@ import { BrowserLogger, ILogger } from '@swizzyweb/swizzy-common';
 import { npmInstall, npmLinkInstall } from '../npm-installer';
 import { validatePackageName } from '../npm-installer';
 import { AppAttachMode, IDynServeBaseRunRequestBody, IDynServeWebServiceRunRequestBody } from '../model/run-request-body';
-
+import { inspect } from 'util';
 const logger: ILogger = new BrowserLogger();
 
 export const router = Router({});
@@ -84,6 +84,7 @@ router.post(`${BASE_PATH}/install`, serviceNameValidationMiddleware, async (req:
       res.status(200).json({
 		message: 'Successfully installed service package'
 	  });
+return;
     } catch(e) {
       logger.error(`Error occurred installing npm package ${serviceName} with exception ${e}`);
       res.status(500).json({
@@ -100,14 +101,20 @@ router.post(`${BASE_PATH}/run`, serviceNameValidationMiddleware, async (req: Req
   
   try {
   	logger.info(`Body ${req.body}`);
-  	  const runArgs: IDynServeWebServiceRunRequestBody<any>= req.body?.runArgs??{
+  	  const runArgs: IDynServeWebServiceRunRequestBody<any>= req.body;/*??{
   	expressConfiguration: {
 		app: {
   			attachMode: AppAttachMode.parentApp,
   		}
 	},
 	serviceArgs: {}
-  };
+  };*/
+// TODO: Validate request
+  if (!runArgs.serviceArgs) {
+    runArgs.serviceArgs = {}
+  }
+  runArgs.serviceArgs.packageName = serviceName;
+  
   logger.info(`${JSON.stringify(runArgs)}`);
   // TODO: validate
     // const toolPath = path.join(`${WEB_SERVICE_LOCAL_REPO_PATH}/${toolName}/${FILE_NAME}`);
@@ -123,11 +130,11 @@ router.post(`${BASE_PATH}/run`, serviceNameValidationMiddleware, async (req: Req
 		res.status(409).json(`Service is already running on that port, provide a new port to run another instance of the service`);
 		return;
 	};
-	const newApp = appPorts[`${port}`] ? appPorts[`${port}`].app : express();
-	const serviceApp = newApp??req.app;//.//runArgs?.expressConfiguration?.app?.attachMode === AppAttachMode.parentApp ? req.app : undefined;
+	const newApp = appPorts[`${port}`] ? appPorts[`${port}`].app : undefined;
+	const serviceApp = newApp ? newApp : port ? express() : req.app;//.//runArgs?.expressConfiguration?.app?.attachMode === AppAttachMode.parentApp ? req.app : undefined;
 
 	logger.info(`App in controller: ${req.app}`);
-    let webService = tool.getWebservice({...(runArgs?.serviceArgs??{}), app: serviceApp, logger, port: runArgs?.expressConfiguration?.app?.port });
+    let webService = tool.getWebservice({...(runArgs?.serviceArgs??{}), app: serviceApp, logger, port: runArgs?.expressConfiguration?.app?.port, serviceArgs: runArgs.serviceArgs, packageName: serviceName });
     await webService.install({}/*{app: req.app, logger}*/);
 	
 	storeWebService(serviceApp, serviceName, webService, port);
@@ -212,7 +219,7 @@ router.post(`${BASE_PATH}/stop`, serviceNameValidationMiddleware, async (req: Re
   } */
 
   try {
-	const port = req.body?.runArgs?.expressConfiguration?.app?.port;
+	const port = req.body?.expressConfiguration?.app?.port;
     if(!appPorts[`${port}`] || !appPorts[`${port}`]?.services[serviceName]) {
       logger.error(`Unable to stop running service ${serviceName} on port ${port} as it is not in available services`);
       res.status(404).json({message: 'Service is not running'});
@@ -243,6 +250,36 @@ router.post(`${BASE_PATH}/stop`, serviceNameValidationMiddleware, async (req: Re
 
 router.get(`${BASE_PATH}/running/list`, (req: Request, res: Response) => {
 	logger.info("Listing web services");
-	logger.debug(`Web services: ${JSON.stringify(appPorts)}`);
-  res.status(200).json({services: appPorts});
+	logger.debug(`Web services: ${inspect(appPorts)}`);
+  res.status(200).json(appPortsToRunningList(appPorts));
 });
+
+function appPortsToRunningList(appPorts: any) {
+  const results: any = {}
+  for (const entry of Object.entries(appPorts)) {
+    let port = entry[0];
+    if (!port || port === 'undefined') {
+      port = "parent";
+    }
+    const val: any = entry[1];
+    results[port] = {services: servicesToRunningList(val.services)};
+  }
+
+return results;
+}
+
+function servicesToRunningList(services: any) {
+  const outServices: any = {};
+  for (const serviceEntry of Object.entries(services)) {
+    const serviceName: string = serviceEntry[0];
+    outServices[serviceName] = serviceToRunningListDetails(serviceEntry[1]);
+  }
+
+  return outServices;
+}
+
+function serviceToRunningListDetails(service: any) {
+  const output = {};
+
+  return output;
+}

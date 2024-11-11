@@ -94,6 +94,7 @@ router.post(`${BASE_PATH}/run`, toolNameValidationMiddleware, async (req: Reques
   } catch(e) {
     logger.error(`Error running service: ${toolName}, e: ${e}`);
     res.status(500).json({message: 'Internal server error while attempting to run tool'});
+    return;
   }
   
   res.status(200).json({message: 'Started tool successfully'});
@@ -121,6 +122,7 @@ router.post(`${BASE_PATH}/stop`, toolNameValidationMiddleware, async (req: Reque
   } catch(e) {
     logger.error(`Error stopping tool: ${toolName}, e: ${e}`);
     res.status(500).json({message: 'Internal server error stopping tool'});
+    return;
   }
   
   res.status(200).json({message: 'Successfully stopped tool'});

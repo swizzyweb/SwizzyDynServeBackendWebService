@@ -1,6 +1,6 @@
 // @ts-ignore
 import { Application } from "@swizzyweb/express";
-import { ILogger } from '@swizzyweb/swizzy-common';
+import { ILogger, getPackageJson } from '@swizzyweb/swizzy-common';
 import { IRunProps, IRunResult, IWebService, WebService } from "@swizzyweb/swizzy-web-service";
 // import { router } from "./routers/install-webservice-router";
 import { router as webserviceRouter} from "./routers/install-webservice-npm-router";
@@ -35,10 +35,14 @@ export interface ISwizzyDynServeWebServiceProps {
 	port?: number;
 	logger?: ILogger;
 	basePath?: string;	
+  packageName: string;
+  serviceArgs: any;
 };
 
 export function getWebservice(props?: ISwizzyDynServeWebServiceProps): IWebService {
-	return new SwizzyDynServeBackendWebService(props);
+  const packageJson = getPackageJson(1);
+  const packageName = packageJson.name;
+	return new SwizzyDynServeBackendWebService({ ...props, packageName, ...props?.serviceArgs??{} });
 };
 
 export const routers = [webserviceRouter, toolRouter];
