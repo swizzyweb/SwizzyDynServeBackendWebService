@@ -34,7 +34,7 @@ export interface ISwizzyDynServeWebServiceProps {
 	app?: Application;
 	port?: number;
 	logger?: ILogger;
-	basePath?: string;	
+	basePath?: string;
   packageName: string;
   serviceArgs: any;
 };
